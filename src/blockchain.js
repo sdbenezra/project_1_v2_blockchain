@@ -34,7 +34,7 @@ class Blockchain {
      * Passing as a data `{data: 'Genesis Block'}`
      */
     async initializeChain() {
-        if( this.height === -1){
+        if( this.height === -1 ){
             let block = new BlockClass.Block({data: 'Genesis Block'});
             await this._addBlock(block);
         }
@@ -61,10 +61,22 @@ class Blockchain {
      * Note: the symbol `_` in the method name indicates in the javascript convention 
      * that this method is a private method. 
      */
+    // see practice block (blockchain basics lesson 1 - section 8)
     _addBlock(block) {
-        let self = this;
         return new Promise(async (resolve, reject) => {
-           
+            console.log('adding block')
+            this.height = await this.getChainHeight() + 1;
+            let time = parseInt(new Date().getTime().toString().slice(0, -3));
+            block.height = this.height;
+            block.time = time;
+            if (this.height == 0) {
+                block.previousBlockHash = null;
+            } else {
+                block.previousBlockHash = this.getBlockByHeight(height - 1).hash;
+            } 
+            block.hash = SHA256(block).toString();
+            this.chain.push(block);
+            resolve(block);
         });
     }
 
@@ -78,7 +90,9 @@ class Blockchain {
      */
     requestMessageOwnershipVerification(address) {
         return new Promise((resolve) => {
-            
+            let time = new Date();
+            time.setMinutes(time.getMinutes() + 5);
+            resolve(`${address}:${time}:starRegistry`);
         });
     }
 
@@ -102,7 +116,14 @@ class Blockchain {
     submitStar(address, message, signature, star) {
         let self = this;
         return new Promise(async (resolve, reject) => {
-            
+            let time = parseInt(message.split(':')[1]);
+            let currentTime = parseInt(new Date().getTime().toString().slice(0, -3));
+            if (currentTime < time) {
+                bitcoinMessage.verify(message, address, signature);
+                let block = new BlockClass.Block(star);
+                await this._addBlock(block);
+            }
+            resolve(block);
         });
     }
 

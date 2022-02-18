@@ -36,16 +36,21 @@ class Block {
      *  Note: to access the class values inside a Promise code you need to create an auxiliary value `let self = this;`
      */
     validate() {
+        // ref Lesson 1 - section 8. practice block
         let self = this;
         return new Promise((resolve, reject) => {
-            // Save in auxiliary variable the current block hash
+            let tempHash = self.hash;
+            self.hash = null;
                                             
-            // Recalculate the hash of the Block
-            // Comparing if the hashes changed
-            // Returning the Block is not valid
+            let blockHash = SHA256(JSON.stringify(self));
             
-            // Returning the Block is valid
-
+            if (tempHash !== blockHash) {
+                resolve(false);
+            } else if (tempHash == blockHash) {
+                resolve(true);
+            } else {
+                reject(Error("Error in validation"));
+            };
         });
     }
 
@@ -59,11 +64,23 @@ class Block {
      *     or Reject with an error.
      */
     getBData() {
+        // ref Lesson 6 - section 5 Encode/Decode with Node.js
         // Getting the encoded data saved in the Block
         // Decoding the data to retrieve the JSON representation of the object
         // Parse the data to an object to be retrieve.
 
         // Resolve with the data if the object isn't the Genesis block
+        let self = this;
+        return new Promise((resolve, reject) => {
+            let data = hex2ascii(this.data);
+            let parsedData = JSON.parse(data);
+            if (self.previousBlockHash !== null) {
+                resolve (parsedData);
+            } else {
+                reject(Error("No data or Genesis Block"));
+            }
+        });
+        
 
     }
 
