@@ -46,7 +46,7 @@ class Block {
             
             if (tempHash !== blockHash) {
                 resolve(false);
-            } else if (tempHash == blockHash) {
+            } else if (tempHash === blockHash) {
                 resolve(true);
             } else {
                 reject(Error("Error in validation"));
@@ -72,13 +72,11 @@ class Block {
         // Resolve with the data if the object isn't the Genesis block
         let self = this;
         return new Promise((resolve, reject) => {
-            let data = hex2ascii(this.data);
-            let parsedData = JSON.parse(data);
+            let data = hex2ascii(self.body);
             if (self.previousBlockHash !== null) {
-                resolve (parsedData);
-            } else {
-                reject(Error("No data or Genesis Block"));
+                resolve (data);
             }
+            resolve(null);
         });
         
 
