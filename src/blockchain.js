@@ -64,22 +64,26 @@ class Blockchain {
     // see practice block (blockchain basics lesson 1 - section 8)
     _addBlock(block) {
         return new Promise(async (resolve, reject) => {
-            let height = await this.getChainHeight();
-            height += 1;
-            let time = parseInt(new Date().getTime().toString().slice(0, -3));
-            block.height = height;
-            block.time = time;
-            if (height == 0) {
-                block.previousBlockHash = null;
+            if (block) {
+                let height = await this.getChainHeight();
+                height += 1;
+                let time = parseInt(new Date().getTime().toString().slice(0, -3));
+                block.height = height;
+                block.time = time;
+                if (height <= 0) {
+                    block.previousBlockHash = null;
+                } else {
+                    let previousBlock = await this.getBlockByHeight(height - 1);
+                    block.previousBlockHash = previousBlock.hash;
+                };
+                block.hash = SHA256(JSON.stringify(block)).toString();
+                this.chain.push(block);
+                this.height = height;
+                console.log(this.chain);
+                resolve(block);
             } else {
-                let previousBlock = await this.getBlockByHeight(height - 1);
-                block.previousBlockHash = previousBlock.hash;
-            };
-            block.hash = SHA256(JSON.stringify(block)).toString();
-            this.chain.push(block);
-            this.height = height;
-            console.log(this.chain);
-            resolve(block);
+                reject(Error('No block to add to chain.'))
+            }       
         });
     }
 
@@ -93,7 +97,8 @@ class Blockchain {
      */
     requestMessageOwnershipVerification(address) {
         return new Promise((resolve) => {
-            let time = new Date();
+            let time = new Date().getTime().toString();
+            console.log(`TIME: ${time}`);
             resolve(`${address}:${time}:starRegistry`);
         });
     }
@@ -118,11 +123,11 @@ class Blockchain {
     submitStar(address, message, signature, star) {
         let self = this;
         return new Promise(async (resolve, reject) => {
-            let time = message.split(':')[2];
-            console.log(time);
-            let currentTime = new Date().getMinutes();
-            console.log(currentTime);
-            if (currentTime - time < 30) {
+            let time = message.split(':')[1].slice(0, -3);
+            console.log(`TIME: ${time}`);
+            let currentTime = new Date().getTime().toString().slice(0, -3);
+            console.log(`CURRENT TIME: ${currentTime}`);
+            if (currentTime - time < 300) {
                 if (bitcoinMessage.verify(message, address, signature)) {
                     let block = new BlockClass.Block({ "address": address, "message": message, "signature": signature, "star": star });
                     await self._addBlock(block);
@@ -181,10 +186,9 @@ class Blockchain {
         let stars = [];
         return new Promise((resolve, reject) => {
             for (let block of self.chain) {
-                block.getBData().then((stringifiedData) => {
-                    let parsedData = JSON.parse(stringifiedData);
-                    if (parsedData && parsedData.address == address) {
-                        stars.push({ "owner": address, "star": parsedData.star });
+                block.getBData().then((data) => {
+                    if (data && data.address == address) {
+                        stars.push({ "owner": address, "star": data.star });
                     }
                 });
             };

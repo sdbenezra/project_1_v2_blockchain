@@ -72,16 +72,16 @@ class Block {
         // Resolve with the data if the object isn't the Genesis block
         let self = this;
         return new Promise((resolve, reject) => {
-            let data = hex2ascii(self.body);
+            let data = JSON.parse(hex2ascii(self.body));
             if (self.previousBlockHash !== null) {
                 resolve (data);
-            }
-            resolve(null);
+            } else if (data.data === 'Genesis Block') {
+                resolve(null);
+            } else {
+                reject(Error('Error retrieving block data.'))
+            }          
         });
-        
-
     }
-
 }
 
 module.exports.Block = Block;                    // Exposing the Block class as a module
