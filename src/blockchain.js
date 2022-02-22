@@ -35,8 +35,13 @@ class Blockchain {
      */
     async initializeChain() {
         if( this.height === -1 ){
-            let block = new BlockClass.Block({data: 'Genesis Block'});
-            await this._addBlock(block);
+            let block = new BlockClass.Block({ data: 'Genesis Block' });
+            try {
+                await this._addBlock(block);
+            } catch (error) {
+                console.log(`Error in initialization: ${error}`);
+            }
+            
         }
     }
 
@@ -64,26 +69,36 @@ class Blockchain {
     // see practice block (blockchain basics lesson 1 - section 8)
     _addBlock(block) {
         return new Promise(async (resolve, reject) => {
-            if (block) {
-                let height = await this.getChainHeight();
-                height += 1;
-                let time = parseInt(new Date().getTime().toString().slice(0, -3));
-                block.height = height;
-                block.time = time;
-                if (height <= 0) {
-                    block.previousBlockHash = null;
-                } else {
-                    let previousBlock = await this.getBlockByHeight(height - 1);
-                    block.previousBlockHash = previousBlock.hash;
-                };
-                block.hash = SHA256(JSON.stringify(block)).toString();
-                this.chain.push(block);
-                this.height = height;
-                console.log(this.chain);
-                resolve(block);
+            let errors = [];
+            let height = await this.getChainHeight();
+            height += 1;
+            let time = parseInt(new Date().getTime().toString().slice(0, -3));
+            block.height = height;
+            block.time = time;
+            if (height <= 0) {
+                block.previousBlockHash = null;
             } else {
-                reject(Error('No block to add to chain.'))
-            }       
+                let previousBlock = await this.getBlockByHeight(height - 1);
+                block.previousBlockHash = previousBlock.hash;
+            };
+            block.hash = SHA256(JSON.stringify(block)).toString();
+            this.chain.push(block);
+            this.height = height;
+            try {
+                console.log("VALIDATING CHAIN");
+                errors = await this.validateChain();
+                if (errors[0]) {
+                    // If errors, remove block from chain.
+                    console.log(errors);
+                    this.chain.pop(block);
+                    this.height = height - 1;
+                    reject(Error(errors));
+                } else {
+                    resolve(block);
+                };
+            } catch (error) {
+                reject(Error(error));
+            };
         });
     }
 
@@ -127,10 +142,15 @@ class Blockchain {
             console.log(`TIME: ${time}`);
             let currentTime = new Date().getTime().toString().slice(0, -3);
             console.log(`CURRENT TIME: ${currentTime}`);
-            if (currentTime - time < 300) {
+            if (Math.floor((currentTime - time) / 60) < 5) {
                 if (bitcoinMessage.verify(message, address, signature)) {
                     let block = new BlockClass.Block({ "address": address, "message": message, "signature": signature, "star": star });
-                    await self._addBlock(block);
+                    try {
+                        await self._addBlock(block);
+                    } catch (error) {
+                        reject(Error(`Can not add block due to error ${JSON.stringify(error)}`))
+                    }
+                    
                     resolve(block);
                 } else {
                     reject(Error("Invalid message, star not added"));
@@ -208,14 +228,20 @@ class Blockchain {
         let prevHash = null;
         return new Promise(async (resolve, reject) => {
             for (const block of self.chain) {
-                if (!block.validate()){
-                    errorLog.push(Error(`Block invalid: ${block}`))
-                };
-                if (block.prevHash !== prevHash) {
-                    errorLog.push(Error(`Block breaks chain: ${block}`))
-                };
-                prevHash = block.prevHash;
+                try {
+                    let isValid = await block.validate();
+                    if (!isValid) {
+                        errorLog.push(Error(`Block invalid: ${JSON.stringify(block)}`))
+                    };
+                    if (block.previousBlockHash != prevHash) {
+                        errorLog.push(Error(`Block breaks chain: ${JSON.stringify(block)}`))
+                    };
+                    prevHash = block.hash;
+                } catch (error) {
+                    reject(Error(error));
+                }                
             }
+            resolve(errorLog);
         });
     }
 

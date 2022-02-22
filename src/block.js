@@ -40,13 +40,12 @@ class Block {
         let self = this;
         return new Promise((resolve, reject) => {
             let tempHash = self.hash;
-            self.hash = null;
-                                            
-            let blockHash = SHA256(JSON.stringify(self));
-            
-            if (tempHash !== blockHash) {
+            let checkBlock = {...self};
+            checkBlock.hash = null
+            let blockHash = SHA256(JSON.stringify(checkBlock));
+            if (tempHash != blockHash) {
                 resolve(false);
-            } else if (tempHash === blockHash) {
+            } else if (tempHash == blockHash) {
                 resolve(true);
             } else {
                 reject(Error("Error in validation"));

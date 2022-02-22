@@ -1,3 +1,5 @@
+const { json } = require("body-parser");
+
 /**
  *          BlockchainController
  * 
@@ -16,6 +18,7 @@ class BlockchainController {
         this.submitStar();
         this.getBlockByHash();
         this.getStarsByOwner();
+        this.validateChain();
     }
 
     // Enpoint to Get a Block by Height (GET Endpoint)
@@ -115,6 +118,22 @@ class BlockchainController {
             }
             
         });
+    }
+
+    // This endpoint validates the chain
+    validateChain() {
+        this.app.get("/validateChain", async (req, res) => {
+            try {
+                let errors = this.blockchain.validateChain();
+                if (errors[0]) {
+                    return res.status(200).json(errors);
+                } else {
+                    return res.status(200).send("Chain is valid");
+                }       
+            } catch (error) {
+                return res.status(500).send("Error occured in validateChain process.")
+            }
+        })
     }
 
 }
